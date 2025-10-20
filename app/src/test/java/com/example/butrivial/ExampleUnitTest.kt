@@ -1,4 +1,4 @@
-package es.BuTrivial
+package com.example.butrivial
 
 import org.junit.Test
 

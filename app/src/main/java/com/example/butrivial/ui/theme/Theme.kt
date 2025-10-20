@@ -1,4 +1,4 @@
-package es.BuTrivial.ui.theme
+package com.example.butrivial.ui.theme
 
 import android.app.Activity
 import android.os.Build

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "es.BuTrivial"
+    namespace = "com.example.butrivial"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "es.BuTrivial"
+        applicationId = "com.example.butrivial"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

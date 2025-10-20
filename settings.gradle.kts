@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "BuTrivial"
 include(":app")
- 

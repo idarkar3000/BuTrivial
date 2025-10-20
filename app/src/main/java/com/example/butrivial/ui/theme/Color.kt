@@ -1,4 +1,4 @@
-package es.BuTrivial.ui.theme
+package com.example.butrivial.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

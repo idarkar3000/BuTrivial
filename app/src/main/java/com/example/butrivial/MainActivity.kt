@@ -1,4 +1,4 @@
-package es.BuTrivial
+package com.example.butrivial
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import es.BuTrivial.ui.theme.BuTrivialTheme
+import com.example.butrivial.ui.theme.BuTrivialTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
