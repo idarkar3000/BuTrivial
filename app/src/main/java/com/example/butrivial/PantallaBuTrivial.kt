@@ -19,9 +19,6 @@ import com.example.butrivial.ui.theme.BuTrivialTheme
 import kotlinx.coroutines.delay
 
 // IMPORTACIONES DEL ARCHIVO EXTERNO
-import com.example.butrivial.Pregunta
-import com.example.butrivial.Tema
-import com.example.butrivial.PreguntasPorTema
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,8 +29,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Iniciamos el juego con el tema de Ciencias Naturales
-                    PantallaButrivial(Tema.CIENCIAS_NATURALES)
+                    // Preguntas de naturales
+                    PantallaButrivial(Tema.VIDEOJUEGOS)
                 }
             }
         }
@@ -43,12 +40,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PantallaButrivial(temaInicial: Tema) {
 
-    // --- LÓGICA DE CARGA DE PREGUNTAS (CORREGIDA) ---
+    // --- LÓGICA DE CARGA DE PREGUNTAS ---
     val poolDePreguntas: List<Pregunta> = remember(temaInicial) {
-        // Obtenemos la lista completa del tema (o una lista vacía si el tema no existe)
+        // Obtenemos la lista completa del tema
         val listaCompleta = PreguntasPorTema[temaInicial] ?: emptyList()
 
-        // Mezclamos la lista segura y tomamos los primeros 10 elementos.
+        // Mezclamos pregunta y elige 10.
         listaCompleta
             .shuffled()
             .take(10)
@@ -77,7 +74,7 @@ fun PantallaButrivial(temaInicial: Tema) {
         return
     }
 
-    // --- EFECTO DE TEMPORIZADOR (LaunchedEffect) ---
+    // --- EFECTO DE TEMPORIZADOR ---
     LaunchedEffect(key1 = juegoActivo, key2 = preguntaIndex) {
         if (juegoActivo) {
             tiempoRestante = 30
@@ -98,9 +95,9 @@ fun PantallaButrivial(temaInicial: Tema) {
 
         if (seleccionIndex == preguntaActual.respuestaCorrecta) {
             puntuacion += 10
-            mensajeEstado = "✅ ¡Correcto! +10 puntos."
+            mensajeEstado = "¡Correcto! +10 puntos."
         } else {
-            mensajeEstado = "❌ Incorrecto. La respuesta correcta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
+            mensajeEstado = "Incorrecto. La respuesta correcta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
         }
         juegoActivo = false
     }
@@ -202,7 +199,7 @@ fun PantallaButrivial(temaInicial: Tema) {
             }
         }
 
-        // --- 4. Área Inferior: Mensajes y Controles ---
+        // --- Mensajes y Controles ---
         Text(
             text = mensajeEstado,
             color = Color(0xFFFFFFFF),
