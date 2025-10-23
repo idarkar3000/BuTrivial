@@ -1,6 +1,7 @@
 package com.example.butrivial
 
 import android.os.Bundle
+import android.media.MediaPlayer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -17,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 import kotlinx.coroutines.delay
-
 // IMPORTACIONES DEL ARCHIVO EXTERNO
 
 class MainActivity : ComponentActivity() {
@@ -59,6 +60,46 @@ fun PantallaButrivial(temaInicial: Tema) {
 
     // El juego está activo si hay preguntas y el tiempo no se ha acabado por respuesta o timeout
     var juegoActivo by remember { mutableStateOf(poolDePreguntas.isNotEmpty()) }
+
+    // --- REPRODUCCIÓN DE MÚSICA (añadido) ---
+    val context = LocalContext.current
+
+    // Crear MediaPlayer una sola vez mientras exista el Composable
+    val mediaPlayer = remember {
+        // Asegúrate de tener app/src/main/res/raw/fashion_queen.mp3 y usar R.raw.fashion_queen
+        MediaPlayer.create(context, R.raw.fashion_queen).apply {
+            isLooping = true // opcional: que se repita mientras juegoActivo == true
+        }
+    }
+
+    // Liberar recursos cuando el Composable se destruya
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                if (mediaPlayer.isPlaying) mediaPlayer.stop()
+            } catch (_: Exception) { }
+            try {
+                mediaPlayer.release()
+            } catch (_: Exception) { }
+        }
+    }
+
+    // Efecto que responde a cambios de juegoActivo: si pasa a true, reproducir desde el principio;
+    // si pasa a false, pausar y volver al inicio.
+    LaunchedEffect(key1 = juegoActivo) {
+        try {
+            if (juegoActivo) {
+                mediaPlayer.seekTo(0)
+                mediaPlayer.start()
+            } else {
+                if (mediaPlayer.isPlaying) {
+                    mediaPlayer.pause()
+                }
+                mediaPlayer.seekTo(0)
+            }
+        } catch (_: Exception) { /* ignorar errores de reproducción */ }
+    }
+    // --- fin reproducción de música ---
 
     // Manejar el final del juego o pool vacío
     val preguntaActual = poolDePreguntas.getOrNull(preguntaIndex)

@@ -5,6 +5,7 @@ data class Pregunta(
     val texto: String,
     val opciones: List<String>,
     val respuestaCorrecta: Int, // Índice 0, 1, 2, o 3
+
 )
 
 // Definición de los 5 temas como un Enum
@@ -173,8 +174,8 @@ val PreguntasPorTema: Map<Tema, List<Pregunta>> = mapOf(
     Tema.VIDEOJUEGOS to listOf(
         // Enunciado: ¿Cómo se llama el juego al que pertenece esta imagen? (Opción 2: Devil May Cry 5)
         Pregunta(
-            texto = "¿Cómo se llama el juego al que pertenece esta imagen?",
-            opciones = listOf("Red Dead Redemption 2", "Devil May Cry 5", "Dragon Age Origins", "Final Fantasy XVII"),
+            texto = "¿Cual de estos juegos pertenece a la saga mas larga?",
+            opciones = listOf("Red Dead Redemption 2", "Devil May Cry 5", "Dragon Age Origins", "Baldur's Gate III"),
             respuestaCorrecta = 1
         ),
 
