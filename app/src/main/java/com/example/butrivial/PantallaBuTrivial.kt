@@ -23,6 +23,19 @@ import kotlinx.coroutines.delay
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val temaNombre: String? = intent.getStringExtra(EXTRA_TEMA_SELECCIONADO)
+
+        val temaSeleccionado: Tema = if (temaNombre != null) {
+            try {
+                Tema.valueOf(temaNombre)
+            } catch (e: IllegalArgumentException) {
+                // Fallback: Si el nombre no existe, usamos un tema por defecto
+                Tema.CIENCIAS_NATURALES
+            }
+        } else {
+            // Fallback: Si no se pasó ningún Intent, usamos un tema por defecto
+            Tema.CIENCIAS_NATURALES
+        }
         setContent {
             BuTrivialTheme {
                 Surface(
@@ -30,7 +43,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // Preguntas de naturales
-                    PantallaButrivial(Tema.VIDEOJUEGOS)
+                    PantallaButrivial(temaSeleccionado)
                 }
             }
         }
