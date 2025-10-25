@@ -6,11 +6,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,16 +31,17 @@ import kotlinx.coroutines.delay
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Usamos PantallaSeleccionCategoriaActivity.EXTRA_TEMA_SELECCIONADO para asegurar la referencia
-        val temaNombre: String? = intent.getStringExtra("com.example.butrivial.TEMA_SELECCIONADO")
+        val temaNombre: String? = intent.getStringExtra(EXTRA_TEMA_SELECCIONADO)
 
         val temaSeleccionado: Tema = if (temaNombre != null) {
             try {
                 Tema.valueOf(temaNombre)
             } catch (e: IllegalArgumentException) {
+                // Tema por defecto
                 Tema.CIENCIAS_NATURALES
             }
         } else {
+            // Tema por defecto
             Tema.CIENCIAS_NATURALES
         }
         setContent {
@@ -54,6 +59,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun PantallaButrivial(temaInicial: Tema) {
+    val context = LocalContext.current
 
     // --- LÓGICA DE CARGA DE PREGUNTAS ---
     val poolDePreguntas: List<Pregunta> = remember(temaInicial) {
@@ -74,8 +80,18 @@ fun PantallaButrivial(temaInicial: Tema) {
     var respuestaSeleccionadaIndex by remember { mutableIntStateOf(-1) }
     var respuestaCorrectaIndex by remember { mutableIntStateOf(-1) }
 
+    // --- ESTADO PARA EL DIÁLOGO DE PAUSA (NUEVO) ---
+    var mostrarDialogoPausa by remember { mutableStateOf(false) }
+
+
+    // --- FUNCIÓN PARA NAVEGAR A INICIO (NUEVA) ---
+    val irAInicio: () -> Unit = {
+        val intent = Intent(context, PantallaInicioActivity::class.java)
+        context.startActivity(intent)
+        if (context is ComponentActivity) context.finish()
+    }
+
     // --- FUNCIÓN PARA REINICIAR EL JUEGO COMPLETO (AHORA COMO VAL LAMBDA) ---
-    // ESTA DEFINICIÓN CORRIGE EL ERROR DE 'UNRESOLVED REFERENCE'
     val reiniciarJuego: () -> Unit = {
         puntuacion = 0
         preguntaIndex = 0
@@ -110,7 +126,7 @@ fun PantallaButrivial(temaInicial: Tema) {
         PantallaFinDeJuego(
             puntuacion = puntuacion,
             totalPreguntas = poolDePreguntas.size,
-            onReiniciar = reiniciarJuego // <--- USAMOS LA PROPIEDAD VAL
+            onReiniciar = reiniciarJuego
         )
         return
     }
@@ -153,6 +169,7 @@ fun PantallaButrivial(temaInicial: Tema) {
         juegoActivo = false
     }
 
+    // --- CONTENEDOR PRINCIPAL: COLUMN ---
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -161,38 +178,73 @@ fun PantallaButrivial(temaInicial: Tema) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // --- 1. Área Superior: Puntuación y Tiempo ---
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "BuTrivial",
-                color = Color(0xFFFFB700),
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Tema: ${temaInicial.nombreMostrar} (${preguntaIndex + 1}/${poolDePreguntas.size})",
-                color = Color.LightGray,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Puntuación: $puntuacion",
-                color = Color.White,
-                fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
 
-            // --- INDICADOR DE TEMPORIZADOR ---
-            Text(
-                text = "Tiempo: $tiempoRestante s",
-                color = if (tiempoRestante <= 5 && juegoActivo) Color.Red else Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-        }
+        // --- 1. ÁREA SUPERIOR: CABECERA CON BOTÓN DE PAUSA (ROW) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.Start
+        ) {
 
-        // --- 2. Área Central: Pregunta ---
+            // A. BOTÓN DE PAUSA
+            Button(
+                onClick = {
+                    mostrarDialogoPausa = true
+                },
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF669BBC))
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ExitToApp,
+                    contentDescription = "Salir",
+                    tint = Color.White
+                )
+            }
+
+            // B. EL RESTO DE LA CABECERA (Centrado en el espacio restante)
+            Column(
+                modifier = Modifier
+                    .weight(1f) // Ocupa el espacio restante
+                    .padding(start = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "BuTrivial",
+                    color = Color(0xFFFFB700),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Tema: ${temaInicial.nombreMostrar} (${preguntaIndex + 1}/${poolDePreguntas.size})",
+                    color = Color.LightGray,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = "Puntuación: $puntuacion",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                // --- INDICADOR DE TEMPORIZADOR ---
+                Text(
+                    text = "Tiempo: $tiempoRestante s",
+                    color = if (tiempoRestante <= 5 && juegoActivo) Color.Red else Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            // C. Espaciador para equilibrar visualmente
+            Spacer(modifier = Modifier.width(48.dp))
+        } // Fin del Row de Cabecera
+
+        // --- 2. ÁREA CENTRAL: PREGUNTA ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -210,7 +262,7 @@ fun PantallaButrivial(temaInicial: Tema) {
             )
         }
 
-        // --- 3. Área Opciones (Botones) - CON COLORES DE FEEDBACK ---
+        // --- 3. ÁREA OPCIONES (BOTONES) - CON COLORES DE FEEDBACK ---
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -234,7 +286,7 @@ fun PantallaButrivial(temaInicial: Tema) {
             }
         }
 
-        // --- Mensajes y Controles ---
+        // --- 4. MENSAJES Y CONTROLES INFERIORES ---
         Text(
             text = mensajeEstado,
             color = Color(0xFFFFFFFF),
@@ -249,25 +301,59 @@ fun PantallaButrivial(temaInicial: Tema) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = reiniciarJuego, // <--- USAMOS LA PROPIEDAD VAL CORREGIDA
+                onClick = reiniciarJuego,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF669BBC))
             ) {
                 Text("Reiniciar Juego")
             }
 
             Button(
-                onClick = ::siguientePregunta,
+                onClick = { siguientePregunta() },
                 enabled = !juegoActivo,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676))
             ) {
                 Text("Siguiente Pregunta")
             }
         }
+    } // Fin del Contenedor Principal (Column)
+
+    // --- DIÁLOGO DE PAUSA (Se superpone a la Column) ---
+    if (mostrarDialogoPausa) {
+        AlertDialog(
+            onDismissRequest = {
+                mostrarDialogoPausa = false // Cerrar al tocar fuera
+            },
+            title = {
+                Text(text = "¿Salir de la Partida?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(text = "¿Estás seguro de que quieres volver al menú principal? Perderás tu progreso actual.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = irAInicio,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC1121F)) // Rojo
+                ) {
+                    Text("Salir y Perder Progreso", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoPausa = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676)) // Verde
+                ) {
+                    Text("Continuar Partida", color = Color.White)
+                }
+            }
+        )
     }
-}
+
+} // Fin de PantallaButrivial
 
 
-// --- NUEVO COMPOSABLE: PANTALLA DE FIN DE JUEGO ---
+// --- COMPOSABLE: PANTALLA DE FIN DE JUEGO (se mantiene igual) ---
 @Composable
 fun PantallaFinDeJuego(puntuacion: Int, totalPreguntas: Int, onReiniciar: () -> Unit) {
     Column(
