@@ -37,9 +37,9 @@ class PantallaSeleccionCategoriaActivity : ComponentActivity() {
                     PantallaSeleccionCategoria(
                         // Lógica de navegación al seleccionar un tema
                         onTemaSelected = { tema ->
-                            // 1. Creamos el Intent hacia la actividad del juego (MainActivity)
+                            // Creamos el Intent hacia la actividad del juego (MainActivity)
                             val intent = Intent(this, MainActivity::class.java).apply {
-                                // 2. Añadimos el nombre del tema (convertido a String) como extra
+                                //  Añadimos el nombre del tema (convertido a String) como extra
                                 putExtra(EXTRA_TEMA_SELECCIONADO, tema.name)
                             }
                             startActivity(intent)
@@ -75,14 +75,14 @@ fun PantallaSeleccionCategoria(
         )
 
         LazyVerticalGrid(
-            // El error "Unresolved reference: Tema" ocurre si Tema no está definido en otro archivo
+            
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.weight(1f)
         ) {
-            // Recorre todos los valores del enum Tema (¡Requiere que Tema exista!)
+            // Recorre todos los valores del enum Tema 
             items(Tema.entries.toTypedArray()) { tema ->
                 CategoriaCard(tema = tema, onClick = onTemaSelected)
             }
