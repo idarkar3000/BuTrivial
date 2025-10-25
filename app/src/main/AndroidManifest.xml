@@ -21,7 +21,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <activity
+            android:name=".PantallaSeleccionCategoriaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
         <activity
             android:name=".MainActivity"
             android:exported="false"
