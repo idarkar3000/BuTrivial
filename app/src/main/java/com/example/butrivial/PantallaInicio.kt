@@ -21,6 +21,7 @@ import com.example.butrivial.ui.theme.BuTrivialTheme
 class PantallaInicioActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             BuTrivialTheme {
                 Surface(
@@ -30,7 +31,7 @@ class PantallaInicioActivity : ComponentActivity() {
                     PantallaInicio(
                         onJugarClick = {
                             // Ir a la pantalla del juego
-                            val intent = Intent(this, MainActivity::class.java)
+                            val intent = Intent(this, PantallaSeleccionCategoriaActivity::class.java)
                             startActivity(intent)
                         },
                         onCreditosClick = {
