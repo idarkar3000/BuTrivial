@@ -75,7 +75,7 @@ fun PantallaSeleccionCategoria(
         )
 
         LazyVerticalGrid(
-            
+
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -88,6 +88,22 @@ fun PantallaSeleccionCategoria(
             }
         }
 
+        // --- NUEVO Botón de Tema Aleatorio ---
+        Button(
+            onClick = {
+                // Selecciona un tema al azar del Enum Tema
+                val temaAleatorio = Tema.entries.toTypedArray().random()
+                onTemaSelected(temaAleatorio)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676))
+        ) {
+            Text("¡Tema Aleatorio! (Sorpresa)", color = Color.White, fontSize = 18.sp)
+        }
+
+
         // Botón de Volver al Inicio
         Button(
             onClick = {
@@ -97,7 +113,7 @@ fun PantallaSeleccionCategoria(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp),
+                .padding(top = 12.dp), // Ajuste de padding
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF669BBC))
         ) {
             Text("Volver al Inicio", color = Color.White, fontSize = 18.sp)
