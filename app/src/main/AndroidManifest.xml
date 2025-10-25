@@ -35,6 +35,11 @@
             android:exported="false"
             android:theme="@style/Theme.BuTrivial" />
 
+        <activity
+            android:name=".PantallaPuntuacionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
+
     </application>
 
 </manifest>

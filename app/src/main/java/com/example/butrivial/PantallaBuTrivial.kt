@@ -123,13 +123,36 @@ fun PantallaButrivial(temaInicial: Tema) {
 
     // --- LÓGICA DE FIN DE JUEGO ---
     if (preguntaActual == null) {
-        PantallaFinDeJuego(
-            puntuacion = puntuacion,
-            totalPreguntas = poolDePreguntas.size,
-            onReiniciar = reiniciarJuego
-        )
+        val context = LocalContext.current
+
+        // Lanzar la PantallaPuntuacionActivity al terminar el juego
+        LaunchedEffect(Unit) {
+            val intent = Intent(context, PantallaPuntuacionActivity::class.java)
+            intent.putExtra("puntuacion", puntuacion)
+            intent.putExtra("totalPreguntas", poolDePreguntas.size)
+            context.startActivity(intent)
+
+            // Cerrar la Activity actual para que no se pueda volver con "Atrás"
+            if (context is ComponentActivity) context.finish()
+        }
+
+        // Mostrar pantalla temporal mientras carga la puntuación
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF003049)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Cargando resultados...",
+                color = Color.White,
+                fontSize = 24.sp
+            )
+        }
+
         return
     }
+
 
     // --- EFECTO DE TEMPORIZADOR ---
     LaunchedEffect(key1 = preguntaIndex) {
@@ -353,66 +376,6 @@ fun PantallaButrivial(temaInicial: Tema) {
 } // Fin de PantallaButrivial
 
 
-// --- COMPOSABLE: PANTALLA DE FIN DE JUEGO (se mantiene igual) ---
-@Composable
-fun PantallaFinDeJuego(puntuacion: Int, totalPreguntas: Int, onReiniciar: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF003049))
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "¡FIN DEL JUEGO!",
-            color = Color(0xFFFFB700),
-            fontSize = 40.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF0D5)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .padding(vertical = 16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Tu Puntuación Final:",
-                    color = Color.Black,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "$puntuacion / ${totalPreguntas * 10} puntos",
-                    color = Color(0xFF003049),
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = onReiniciar,
-            modifier = Modifier
-                .fillMaxWidth(0.7f),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676))
-        ) {
-            Text("Jugar de Nuevo", fontSize = 20.sp, color = Color.White)
-        }
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
