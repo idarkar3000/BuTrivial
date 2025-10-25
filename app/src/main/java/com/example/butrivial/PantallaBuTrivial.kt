@@ -29,11 +29,11 @@ class MainActivity : ComponentActivity() {
             try {
                 Tema.valueOf(temaNombre)
             } catch (e: IllegalArgumentException) {
-                // Fallback: Si el nombre no existe, usamos un tema por defecto
+                // Tema por defecto
                 Tema.CIENCIAS_NATURALES
             }
         } else {
-            // Fallback: Si no se pasó ningún Intent, usamos un tema por defecto
+            // Tema por defecto
             Tema.CIENCIAS_NATURALES
         }
         setContent {
