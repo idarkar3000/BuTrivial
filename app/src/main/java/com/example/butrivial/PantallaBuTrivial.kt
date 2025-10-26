@@ -73,11 +73,14 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
 
     // --- ESTADOS DE LA PARTIDA ---
     var preguntaActual by remember { mutableStateOf(0) }
+    // Puntuación ahora almacena la suma de los segundos restantes acumulados
     var puntuacion by remember { mutableStateOf(0) }
     var juegoTerminado by remember { mutableStateOf(false) }
     var respuestaSeleccionada: Int? by remember { mutableStateOf(null) }
     var respuestaBloqueada by remember { mutableStateOf(false) }
     var mostrarDialogoPausa by remember { mutableStateOf(false) }
+    // Estado para guardar los segundos ganados en la pregunta actual
+    var segundosGanados by remember { mutableStateOf(0) }
 
     // --- ESTADO DEL TEMPORIZADOR ---
     var tiempoRestante by remember(preguntaActual) {
@@ -85,9 +88,6 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
     }
 
     val pregunta: Pregunta = poolDePreguntas.getOrElse(preguntaActual) {
-        // Asegúrate de que los tipos Pregunta, Tema, EXTRA_TEMA_SELECCIONADO, EXTRA_NUMERO_PREGUNTAS,
-        // PantallaInicioActivity, PantallaPuntuacionActivity, obtenerPoolDePreguntas y R.raw
-        // estén definidos en tu proyecto.
         Pregunta("Error de pregunta", listOf("", "", "", ""), 0)
     }
 
@@ -136,12 +136,13 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
             preguntaActual++
             respuestaSeleccionada = null
             respuestaBloqueada = false
+            segundosGanados = 0 // Reiniciar segundos ganados
         } else {
             juegoTerminado = true
         }
     }
 
-    // --- FUNCIÓN DE RESPUESTA ---
+    // --- FUNCIÓN DE RESPUESTA (Puntuación por tiempo restante) ---
     fun comprobarRespuesta(indiceOpcion: Int?) {
         if (respuestaBloqueada) return
 
@@ -153,9 +154,13 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
 
         if (indiceOpcion != null && indiceOpcion == pregunta.respuestaCorrecta) {
             mpAcierto?.start()
-            puntuacion++
-        } else if (indiceOpcion != null) {
+            // NUEVA LÓGICA: Puntuación es el tiempo restante
+            segundosGanados = tiempoRestante
+            puntuacion += segundosGanados
+        } else {
             mpError?.start()
+            // Puntuación de 0 por fallo o tiempo agotado
+            segundosGanados = 0
         }
     }
 
@@ -165,9 +170,11 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
             tiempoRestante = TIEMPO_MAXIMO_POR_PREGUNTA
             while (tiempoRestante > 0) {
                 delay(1000)
+                if (respuestaBloqueada) break // Salir si ya se ha respondido
                 tiempoRestante--
             }
-            if (tiempoRestante == 0) {
+            if (tiempoRestante == 0 && !respuestaBloqueada) {
+                // Tiempo agotado, se comprueba la respuesta con 'null' (0 puntos)
                 comprobarRespuesta(null)
             }
         }
@@ -195,12 +202,22 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // --- CABECERA (Contador de preguntas, Tema y Salir) ---
+        // --- CABECERA (Puntuación, Contador de preguntas y Salir) ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // NUEVO: Mostrar Puntuación Acumulada
+
+                Text(
+                    text = "$puntuacion puntos",
+                    color = Color(0xFFFFB700),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+
+            // Contador de preguntas
             Text(
                 text = "${preguntaActual + 1} / ${poolDePreguntas.size}",
                 color = Color.White,
@@ -208,13 +225,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
                 fontWeight = FontWeight.Bold
             )
 
-            Text(
-                text = temaInicial.nombreMostrar,
-                color = Color(0xFFFFB700),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.ExtraBold,
-            )
-
+            // Botón de Salida
             IconButton(
                 onClick = { mostrarDialogoPausa = true },
                 modifier = Modifier
@@ -228,6 +239,14 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
                 )
             }
         }
+
+        // --- Tema (Separado para que esté centrado visualmente) ---
+        Text(
+            text = temaInicial.nombreMostrar,
+            color = Color(0xFFFFB700),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.ExtraBold,
+        )
 
         // ESPACIADOR AUMENTADO (Empuja el cronómetro hacia abajo)
         Spacer(modifier = Modifier.height(24.dp))
@@ -292,7 +311,8 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
                     respuestaSeleccionada == index && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
                     respuestaSeleccionada == index && index != pregunta.respuestaCorrecta -> Color(0xFFC1121F)
                     respuestaBloqueada && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
-                    respuestaBloqueada && tiempoRestante == 0 && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
+                    // Mostrar el botón correcto en verde al agotarse el tiempo
+                    respuestaBloqueada && respuestaSeleccionada == null && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
                     else -> Color(0xFF669BBC)
                 }
 
@@ -320,17 +340,23 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
 
         // --- RETROALIMENTACIÓN DE LA RESPUESTA (Acierto/Fallo - El "Cuadro de Texto") ---
         if (respuestaBloqueada) {
-            val fueAcierto = respuestaSeleccionada == pregunta.respuestaCorrecta
 
-            // VERDE para acierto, ROJO para fallo
-            val colorFondo = if (fueAcierto) Color(0xFF00A676) else Color(0xFFC1121F)
+            // Colores basados en si se ganó puntuación o no
+            val colorFondo = if (segundosGanados > 0) Color(0xFF00A676) else Color(0xFFC1121F)
 
             // Mensaje basado en el resultado
-            val mensajeRetroalimentacion = if (fueAcierto) {
-                "¡Correcto!" // Si acierta: texto simple en verde
-            } else {
-                // Si falla: se muestra la respuesta correcta en rojo
-                "La respuesta correcta era:\n${pregunta.opciones[pregunta.respuestaCorrecta]}"
+            val mensajeRetroalimentacion = when {
+                segundosGanados > 0 -> {
+                    "¡CORRECTO! Ganaste $segundosGanados puntos."
+                }
+                respuestaSeleccionada != null -> {
+                    // Fallo normal
+                    "¡INCORRECTO! Ganas 0 puntos.\nLa respuesta correcta era: ${pregunta.opciones[pregunta.respuestaCorrecta]}"
+                }
+                else -> {
+                    // Tiempo agotado
+                    "¡TIEMPO AGOTADO! Ganas 0 puntos.\nLa respuesta correcta era: ${pregunta.opciones[pregunta.respuestaCorrecta]}"
+                }
             }
 
             Card(
@@ -347,7 +373,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    // CORRECCIÓN: Usar fillMaxWidth() para asegurar el centrado horizontal
+                    // CORRECCIÓN para centrar el texto horizontalmente
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp)
