@@ -24,6 +24,8 @@ class PantallaPuntuacionActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val puntuacion = intent.getIntExtra("puntuacion", 0)
+        // OBTENER EL NÚMERO TOTAL DE PREGUNTAS DEL INTENT
+        val totalPreguntas = intent.getIntExtra("totalPreguntas", 10)
 
         setContent {
             BuTrivialTheme {
@@ -33,7 +35,9 @@ class PantallaPuntuacionActivity : ComponentActivity() {
                 ) {
                     PantallaPuntuacion(
                         puntuacion = puntuacion,
+                        totalPreguntas = totalPreguntas, // PASAR EL TOTAL DE PREGUNTAS
                         onVolverAJugar = {
+                            // Al volver a jugar, se lanza MainActivity sin extras, que usará valores por defecto o los que se carguen allí.
                             val intent = Intent(this, MainActivity::class.java)
                             startActivity(intent)
                             finish()
@@ -50,17 +54,38 @@ class PantallaPuntuacionActivity : ComponentActivity() {
     }
 }
 
+// -------------------------------------------------------------------------------------------------
+
 @Composable
 fun PantallaPuntuacion(
     puntuacion: Int,
+    totalPreguntas: Int, // AÑADIDO: Número total de preguntas
     onVolverAJugar: () -> Unit,
     onSalirAlMenu: () -> Unit
 ) {
-    val (mensaje, imagenRes) = when {
-        puntuacion < 50 -> "Suspenso 😡" to R.drawable.logo_enfadado
-        puntuacion in 50..60 -> "Aprobado por los pelos 😅" to R.drawable.logo_disgustado
-        else -> "¡Muy bien! 😎" to R.drawable.logo_feliz
+    // CALCULAR SI EL JUGADOR APRUEBA (la mitad o más)
+    // Usamos 2.0 para asegurar una división de punto flotante.
+    val porcentajeAcierto = (puntuacion.toFloat() / totalPreguntas.toFloat()) * 100
+    val aprobado = porcentajeAcierto >= 50.0
+
+    // LÓGICA DE RESULTADOS ACTUALIZADA
+    val (tituloResultado, mensaje, imagenRes) = when {
+        // APROBADO: Si la puntuación es la mitad o más
+        aprobado -> Triple(
+            "¡APROBADO!",
+            if (porcentajeAcierto >= 80) "¡Felicidades! Resultado excelente." else "Aprobado, buen trabajo.",
+            R.drawable.logo_feliz
+        )
+        // SUSPENSO: Si la puntuación es menor a la mitad
+        else -> Triple(
+            "SUSPENSO",
+            if (puntuacion == 0) "Necesitas repasar, cero aciertos." else "Inténtalo de nuevo",
+            R.drawable.logo_enfadado
+        )
     }
+
+    // Calcular la puntuación necesaria para aprobar
+    val puntuacionNecesaria = (totalPreguntas / 2.0).toInt() + (totalPreguntas % 2)
 
     Column(
         modifier = Modifier
@@ -70,20 +95,38 @@ fun PantallaPuntuacion(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         Text(
-            text = "Tu puntuación es de:",
+            text = tituloResultado,
             color = Color(0xFFFFB700),
-            fontSize = 28.sp,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Tu puntuación:",
+            color = Color.White,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
         Text(
-            text = "$puntuacion puntos",
+            text = "$puntuacion / $totalPreguntas",
             color = Color.White,
-            fontSize = 36.sp,
+            fontSize = 40.sp,
             fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(vertical = 4.dp)
+        )
+
+        Text(
+            text = "(${"%.1f".format(porcentajeAcierto)}% de acierto)",
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -91,16 +134,27 @@ fun PantallaPuntuacion(
         Text(
             text = mensaje,
             color = Color.White,
-            fontSize = 24.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
+
+        if (!aprobado) {
+            Text(
+                text = "Necesitas $puntuacionNecesaria para aprobar.",
+                color = Color(0xFFE63946),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Image(
             painter = painterResource(id = imagenRes),
-            contentDescription = null,
+            contentDescription = "Resultado del juego",
             modifier = Modifier
                 .size(180.dp)
                 .padding(8.dp)
@@ -119,7 +173,7 @@ fun PantallaPuntuacion(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ✅ Nuevo botón para volver al menú principal
+        // Botón para volver al menú principal
         Button(
             onClick = onSalirAlMenu,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE63946)),

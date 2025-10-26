@@ -1,3 +1,4 @@
+// PantallaBuTrivial.kt
 package com.example.butrivial
 
 import android.content.Intent
@@ -8,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
@@ -24,30 +26,34 @@ import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 import kotlinx.coroutines.delay
 
+// Duración del temporizador por pregunta en segundos
+const val TIEMPO_MAXIMO_POR_PREGUNTA = 30
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ... (Tu código de onCreate)
+
+        // --- RECIBIR EXTRAS ---
         val temaNombre: String? = intent.getStringExtra(EXTRA_TEMA_SELECCIONADO)
+        val numPreguntas: Int = intent.getIntExtra(EXTRA_NUMERO_PREGUNTAS, 10)
 
         val temaSeleccionado: Tema = if (temaNombre != null) {
             try {
                 Tema.valueOf(temaNombre)
             } catch (e: IllegalArgumentException) {
-                // Tema por defecto
                 Tema.CIENCIAS_NATURALES
             }
         } else {
-            // Tema por defecto
             Tema.CIENCIAS_NATURALES
         }
+
         setContent {
             BuTrivialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    PantallaButrivial(temaSeleccionado)
+                    PantallaButrivial(temaSeleccionado, numPreguntas)
                 }
             }
         }
@@ -55,353 +61,329 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PantallaButrivial(temaInicial: Tema) {
+fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
     val context = LocalContext.current
 
     // --- LÓGICA DE CARGA DE PREGUNTAS ---
-    val poolDePreguntas: List<Pregunta> = remember(temaInicial) {
-        val listaCompleta = PreguntasPorTema[temaInicial] ?: emptyList()
-        listaCompleta
-            .shuffled()
-            .take(10) // Usamos 10 preguntas por juego
+    val poolDePreguntas: List<Pregunta> = remember(temaInicial, maxPreguntas) {
+        val listaCompleta = obtenerPoolDePreguntas(temaInicial)
+        val listaBarajada = listaCompleta.shuffled()
+        listaBarajada.take(maxPreguntas)
     }
 
-    // --- ESTADOS ---
-    var puntuacion by remember { mutableIntStateOf(0) }
-    var mensajeEstado by remember { mutableStateOf("¡A jugar!") }
-    var tiempoRestante by remember { mutableIntStateOf(30) }
-    var preguntaIndex by remember { mutableIntStateOf(0) }
-    var juegoActivo by remember { mutableStateOf(poolDePreguntas.isNotEmpty()) }
-
-    // --- REPRODUCCIÓN DE MÚSICA DE FONDO ---
-
-    val mediaPlayerFondo = remember {
-        MediaPlayer.create(context, R.raw.cancioningame).apply {
-            isLooping = true // opcional: que se repita mientras juegoActivo == true
-        }
-    }
-
-    // --- REPRODUCTORES DE EFECTOS DE SONIDO (NUEVOS) ---
-    val mediaPlayerCorrecto = remember {
-        MediaPlayer.create(context, R.raw.correcto)
-    }
-
-    val mediaPlayerFallo = remember {
-        MediaPlayer.create(context, R.raw.fallo)
-    }
-
-    // Liberar recursos cuando el Composable se destruya
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                if (mediaPlayerFondo.isPlaying) mediaPlayerFondo.stop()
-            } catch (_: Exception) { }
-            try {
-                mediaPlayerFondo.release()
-            } catch (_: Exception) { }
-            // LIBERAR LOS NUEVOS RECURSOS
-            try { mediaPlayerCorrecto.release() } catch (_: Exception) { }
-            try { mediaPlayerFallo.release() } catch (_: Exception) { }
-        }
-    }
-
-    // Efecto que responde a cambios de juegoActivo: si pasa a true, reproducir desde el principio;
-    // si pasa a false, pausar y volver al inicio.
-    LaunchedEffect(key1 = juegoActivo) {
-        try {
-            if (juegoActivo) {
-                mediaPlayerFondo.seekTo(0)
-                mediaPlayerFondo.start()
-            } else {
-                if (mediaPlayerFondo.isPlaying) {
-                    mediaPlayerFondo.pause()
-                }
-                mediaPlayerFondo.seekTo(0)
-            }
-        } catch (_: Exception) { /* ignorar errores de reproducción */ }
-    }
-    // --- fin reproducción de música ---
-
-
-    // --- ESTADOS para Feedback Visual ---
-    var respuestaSeleccionadaIndex by remember { mutableIntStateOf(-1) }
-    var respuestaCorrectaIndex by remember { mutableIntStateOf(-1) }
-
-    // --- ESTADO PARA EL DIÁLOGO DE PAUSA ---
+    // --- ESTADOS DE LA PARTIDA ---
+    var preguntaActual by remember { mutableStateOf(0) }
+    var puntuacion by remember { mutableStateOf(0) }
+    var juegoTerminado by remember { mutableStateOf(false) }
+    var respuestaSeleccionada: Int? by remember { mutableStateOf(null) }
+    var respuestaBloqueada by remember { mutableStateOf(false) }
     var mostrarDialogoPausa by remember { mutableStateOf(false) }
 
+    // --- ESTADO DEL TEMPORIZADOR ---
+    var tiempoRestante by remember(preguntaActual) {
+        mutableStateOf(TIEMPO_MAXIMO_POR_PREGUNTA)
+    }
 
-    // --- FUNCIÓN PARA NAVEGAR A INICIO ---
+    val pregunta: Pregunta = poolDePreguntas.getOrElse(preguntaActual) {
+        // Asegúrate de que los tipos Pregunta, Tema, EXTRA_TEMA_SELECCIONADO, EXTRA_NUMERO_PREGUNTAS,
+        // PantallaInicioActivity, PantallaPuntuacionActivity, obtenerPoolDePreguntas y R.raw
+        // estén definidos en tu proyecto.
+        Pregunta("Error de pregunta", listOf("", "", "", ""), 0)
+    }
+
+    // Media Players para efectos de sonido
+    val mpAcierto: MediaPlayer? = remember { MediaPlayer.create(context, R.raw.correcto) }
+    val mpError: MediaPlayer? = remember { MediaPlayer.create(context, R.raw.fallo) }
+
+    // --- Media Player para la música de fondo del juego ---
+    val mpJuego: MediaPlayer? = remember {
+        MediaPlayer.create(context, R.raw.cancioningame).apply {
+            isLooping = true // Reproducción en bucle
+        }
+    }
+
+    // --- CONTROL DEL CICLO DE VIDA Y REPRODUCCIÓN DE MÚSICA DE FONDO ---
+    DisposableEffect(Unit) {
+        // La música comienza con la primera pregunta
+        mpJuego?.start()
+
+        onDispose {
+            // Liberar todos los recursos de MediaPlayer al salir de la pantalla
+            mpJuego?.stop()
+            mpJuego?.release()
+            mpAcierto?.release()
+            mpError?.release()
+        }
+    }
+
+    // --- LÓGICA DE REINICIO DE MÚSICA POR PREGUNTA ---
+    // Este efecto se dispara cada vez que cambia preguntaActual
+    LaunchedEffect(preguntaActual) {
+        // Detiene la música (si está sonando) y la reinicia desde el principio
+        mpJuego?.seekTo(0)
+        mpJuego?.start()
+    }
+
     val irAInicio: () -> Unit = {
         val intent = Intent(context, PantallaInicioActivity::class.java)
         context.startActivity(intent)
-        if (context is ComponentActivity) context.finish()
+        if (context is ComponentActivity) (context as ComponentActivity).finish()
     }
 
-    // --- FUNCIÓN PARA REINICIAR EL JUEGO COMPLETO ---
-    val reiniciarJuego: () -> Unit = {
-        puntuacion = 0
-        preguntaIndex = 0
-        tiempoRestante = 30
-        juegoActivo = poolDePreguntas.isNotEmpty()
-        mensajeEstado = "Juego Reiniciado. ¡A por la primera pregunta!"
-        // Resetear el feedback visual
-        respuestaSeleccionadaIndex = -1
-        respuestaCorrectaIndex = -1
-    }
-
-    // --- FUNCIÓN PARA PASAR A LA SIGUIENTE PREGUNTA ---
-    fun siguientePregunta() {
-        if (preguntaIndex < poolDePreguntas.size - 1) {
-            preguntaIndex++
-            mensajeEstado = "¡Siguiente pregunta!"
+    // --- FUNCIÓN PARA AVANZAR A LA SIGUIENTE PREGUNTA ---
+    val siguientePregunta: () -> Unit = {
+        if (preguntaActual < poolDePreguntas.size - 1) {
+            preguntaActual++
+            respuestaSeleccionada = null
+            respuestaBloqueada = false
         } else {
-            preguntaIndex++ // Para activar la PantallaFinDeJuego (preguntaActual == null)
-            mensajeEstado = "¡Juego terminado!"
-            juegoActivo = false
+            juegoTerminado = true
         }
-        // Resetear el feedback visual
-        respuestaSeleccionadaIndex = -1
-        respuestaCorrectaIndex = -1
     }
 
-    // Manejar el final del juego o pool vacío
-    val preguntaActual = poolDePreguntas.getOrNull(preguntaIndex)
+    // --- FUNCIÓN DE RESPUESTA ---
+    fun comprobarRespuesta(indiceOpcion: Int?) {
+        if (respuestaBloqueada) return
 
-    // --- LÓGICA DE FIN DE JUEGO ---
-    if (preguntaActual == null) {
-        val context = LocalContext.current
+        respuestaBloqueada = true
+        respuestaSeleccionada = indiceOpcion
 
-        // Lanzar la PantallaPuntuacionActivity al terminar el juego
-        LaunchedEffect(Unit) {
+        // Pausar la música al responder
+        mpJuego?.pause()
+
+        if (indiceOpcion != null && indiceOpcion == pregunta.respuestaCorrecta) {
+            mpAcierto?.start()
+            puntuacion++
+        } else if (indiceOpcion != null) {
+            mpError?.start()
+        }
+    }
+
+    // --- LÓGICA DEL TEMPORIZADOR ---
+    LaunchedEffect(preguntaActual, respuestaBloqueada) {
+        if (!respuestaBloqueada) {
+            tiempoRestante = TIEMPO_MAXIMO_POR_PREGUNTA
+            while (tiempoRestante > 0) {
+                delay(1000)
+                tiempoRestante--
+            }
+            if (tiempoRestante == 0) {
+                comprobarRespuesta(null)
+            }
+        }
+    }
+
+
+    // Lanzar la PantallaPuntuacionActivity al terminar el juego
+    LaunchedEffect(juegoTerminado) {
+        if (juegoTerminado) {
             val intent = Intent(context, PantallaPuntuacionActivity::class.java)
             intent.putExtra("puntuacion", puntuacion)
             intent.putExtra("totalPreguntas", poolDePreguntas.size)
             context.startActivity(intent)
-
-            // Cerrar la Activity actual para que no se pueda volver con "Atrás"
-            if (context is ComponentActivity) context.finish()
-        }
-
-        // Mostrar pantalla temporal mientras carga la puntuación
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF003049)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Cargando resultados...",
-                color = Color.White,
-                fontSize = 24.sp
-            )
-        }
-
-        return
-    }
-
-
-    // --- EFECTO DE TEMPORIZADOR ---
-    LaunchedEffect(key1 = preguntaIndex) {
-        if (preguntaActual != null) {
-            tiempoRestante = 30
-            juegoActivo = true
-
-            while (tiempoRestante > 0 && juegoActivo) {
-                delay(1000L)
-                if (juegoActivo) {
-                    tiempoRestante--
-                }
-            }
-
-            // Si el bucle terminó por timeout
-            if (tiempoRestante == 0 && juegoActivo) {
-                respuestaCorrectaIndex = preguntaActual.respuestaCorrecta
-                mensajeEstado = "¡Tiempo agotado! La respuesta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
-                juegoActivo = false
-                // REPRODUCIR SONIDO DE FALLO POR TIEMPO AGOTADO
-                try { mediaPlayerFallo.start() } catch (_: Exception) { }
-            }
+            if (context is ComponentActivity) (context as ComponentActivity).finish()
         }
     }
 
-    // --- FUNCIÓN PARA PROCESAR RESPUESTA (MODIFICADA) ---
-    fun procesarRespuesta(seleccionIndex: Int) {
-        if (!juegoActivo) return
 
-        respuestaSeleccionadaIndex = seleccionIndex
-        respuestaCorrectaIndex = preguntaActual.respuestaCorrecta
-
-        if (seleccionIndex == preguntaActual.respuestaCorrecta) {
-            puntuacion += 10
-            mensajeEstado = "¡Correcto! +10 puntos."
-            // REPRODUCIR SONIDO DE ACIERTO
-            try { mediaPlayerCorrecto.start() } catch (_: Exception) { }
-        } else {
-            mensajeEstado = "Incorrecto. La respuesta correcta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
-            // REPRODUCIR SONIDO DE FALLO
-            try { mediaPlayerFallo.start() } catch (_: Exception) { }
-        }
-        juegoActivo = false
-    }
-
-    // --- CONTENEDOR PRINCIPAL: COLUMN ---
+    // --- INTERFAZ DE USUARIO (COMPOSABLE) ---
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF003049))
-            // Relleno ajustado
-            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 40.dp),
+            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-
-        // --- 1. ÁREA SUPERIOR: CABECERA CON BOTÓN DE PAUSA (ROW) ---
+        // --- CABECERA (Contador de preguntas, Tema y Salir) ---
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.Start
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = "${preguntaActual + 1} / ${poolDePreguntas.size}",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            // A. BOTÓN DE PAUSA
-            Button(
-                onClick = {
-                    mostrarDialogoPausa = true
-                },
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF669BBC))
+            Text(
+                text = temaInicial.nombreMostrar,
+                color = Color(0xFFFFB700),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+            )
+
+            IconButton(
+                onClick = { mostrarDialogoPausa = true },
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFC1121F), CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Filled.ExitToApp,
-                    contentDescription = "Salir",
+                    contentDescription = "Salir de la partida",
                     tint = Color.White
                 )
             }
+        }
 
-            // B. EL RESTO DE LA CABECERA (Centrado en el espacio restante)
-            Column(
-                modifier = Modifier
-                    .weight(1f) // Ocupa el espacio restante
-                    .padding(start = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "BuTrivial",
-                    color = Color(0xFFFFB700),
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Tema: ${temaInicial.nombreMostrar} (${preguntaIndex + 1}/${poolDePreguntas.size})",
-                    color = Color.LightGray,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "Puntuación: $puntuacion",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+        // ESPACIADOR AUMENTADO (Empuja el cronómetro hacia abajo)
+        Spacer(modifier = Modifier.height(24.dp))
 
-                // --- INDICADOR DE TEMPORIZADOR ---
-                Text(
-                    text = "Tiempo: $tiempoRestante s",
-                    color = if (tiempoRestante <= 5 && juegoActivo) Color.Red else Color.White,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
+        // --- TEMPORIZADOR ---
+        LinearProgressIndicator(
+            progress = { tiempoRestante.toFloat() / TIEMPO_MAXIMO_POR_PREGUNTA.toFloat() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp),
+            color = if (tiempoRestante > 5) Color(0xFF00A676) else Color(0xFFC1121F),
+            trackColor = Color(0xFF669BBC)
+        )
+        Text(
+            text = "$tiempoRestante segundos",
+            color = Color.White,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(top = 8.dp)
+        )
 
-            // C. Espaciador para equilibrar visualmente
-            Spacer(modifier = Modifier.width(48.dp))
-        } // Fin del Row de Cabecera
+        // ESPACIADOR AUMENTADO (Empuja la pregunta hacia abajo)
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // --- 2. ÁREA CENTRAL: PREGUNTA ---
+        // --- PREGUNTA ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .weight(0.4f),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF0D5)),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Text(
-                text = preguntaActual.texto,
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(24.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = pregunta.texto,
+                    color = Color.Black,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
-        // --- 3. ÁREA OPCIONES (BOTONES) - CON COLORES DE FEEDBACK ---
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            preguntaActual.opciones.forEachIndexed { index, opcion ->
+        // ESPACIADOR REDUCIDO (Tira de las opciones/botón Siguiente hacia arriba)
+        Spacer(modifier = Modifier.height(16.dp))
 
-                val botonColor = when {
-                    !juegoActivo && index == respuestaCorrectaIndex -> Color(0xFF00A676) // VERDE: Respuesta Correcta
-                    !juegoActivo && index == respuestaSeleccionadaIndex -> Color(0xFFC1121F) // ROJO: Respuesta Incorrecta seleccionada
-                    else -> Color(0xFFFFB700) // NARANJA: Estado normal o juego activo
+        // --- OPCIONES DE RESPUESTA ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            pregunta.opciones.forEachIndexed { index, opcion ->
+
+                // Determinamos el color de cada botón (la lógica es la misma)
+                val colorBoton = when {
+                    respuestaSeleccionada == index && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
+                    respuestaSeleccionada == index && index != pregunta.respuestaCorrecta -> Color(0xFFC1121F)
+                    respuestaBloqueada && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
+                    respuestaBloqueada && tiempoRestante == 0 && index == pregunta.respuestaCorrecta -> Color(0xFF00A676)
+                    else -> Color(0xFF669BBC)
                 }
 
                 Button(
-                    onClick = { procesarRespuesta(index) },
-                    enabled = juegoActivo,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = botonColor)
+                    onClick = { comprobarRespuesta(index) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(55.dp),
+                    enabled = !respuestaBloqueada,
+                    colors = ButtonDefaults.buttonColors(containerColor = colorBoton)
                 ) {
-                    Text(opcion, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = opcion,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
+            }
+
+            // --- ESPACIO ADICIONAL ANTES DE LA RETROALIMENTACIÓN ---
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // --- RETROALIMENTACIÓN DE LA RESPUESTA (Acierto/Fallo - El "Cuadro de Texto") ---
+        if (respuestaBloqueada) {
+            val fueAcierto = respuestaSeleccionada == pregunta.respuestaCorrecta
+
+            // VERDE para acierto, ROJO para fallo
+            val colorFondo = if (fueAcierto) Color(0xFF00A676) else Color(0xFFC1121F)
+
+            // Mensaje basado en el resultado
+            val mensajeRetroalimentacion = if (fueAcierto) {
+                "¡Correcto!" // Si acierta: texto simple en verde
+            } else {
+                // Si falla: se muestra la respuesta correcta en rojo
+                "La respuesta correcta era:\n${pregunta.opciones[pregunta.respuestaCorrecta]}"
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = colorFondo),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Text(
+                    text = mensajeRetroalimentacion,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    // CORRECCIÓN: Usar fillMaxWidth() para asegurar el centrado horizontal
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                )
             }
         }
 
-        // --- 4. MENSAJES Y CONTROLES INFERIORES ---
-        Text(
-            text = mensajeEstado,
-            color = Color(0xFFFFFFFF),
-            fontSize = 16.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp).heightIn(min = 40.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        // --- BOTÓN SIGUIENTE PREGUNTA (Texto centrado garantizado) ---
+        if (respuestaBloqueada) {
             Button(
-                onClick = reiniciarJuego,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF669BBC))
+                onClick = siguientePregunta,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB700))
             ) {
-                Text("Reiniciar Juego")
-            }
-
-            Button(
-                onClick = { siguientePregunta() },
-                enabled = !juegoActivo,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676))
-            ) {
-                Text("Siguiente Pregunta")
+                Text(
+                    "Siguiente Pregunta",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    // Asegura que el Text ocupe todo el ancho y se centre dentro del Button
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     } // Fin del Contenedor Principal (Column)
 
-    // --- DIÁLOGO DE PAUSA (Se superpone a la Column) ---
+    // --- DIÁLOGO DE PAUSA ---
     if (mostrarDialogoPausa) {
         AlertDialog(
             onDismissRequest = {
-                mostrarDialogoPausa = false // Cerrar al tocar fuera
+                mostrarDialogoPausa = false
             },
             title = {
-                Text(text = "¿Salir de la Partida?", fontWeight = FontWeight.Bold)
+                Text(text = "Abandonar Partida", fontWeight = FontWeight.Bold)
             },
             text = {
                 Text(text = "¿Estás seguro de que quieres volver al menú principal? Perderás tu progreso actual.")
@@ -409,7 +391,7 @@ fun PantallaButrivial(temaInicial: Tema) {
             confirmButton = {
                 Button(
                     onClick = irAInicio,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC1121F)) // Rojo
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC1121F))
                 ) {
                     Text("Salir y Perder Progreso", color = Color.White)
                 }
@@ -419,7 +401,7 @@ fun PantallaButrivial(temaInicial: Tema) {
                     onClick = {
                         mostrarDialogoPausa = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676)) // Verde
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A676))
                 ) {
                     Text("Continuar Partida", color = Color.White)
                 }
@@ -428,10 +410,3 @@ fun PantallaButrivial(temaInicial: Tema) {
     }
 
 } // Fin de PantallaButrivial
-
-
-@Preview(showBackground = true)
-@Composable
-fun PantallaButrivialPreview() {
-    PantallaButrivial(Tema.CIENCIAS_NATURALES)
-}
