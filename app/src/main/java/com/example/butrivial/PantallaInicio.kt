@@ -2,6 +2,7 @@ package com.example.butrivial
 
 import android.content.Intent
 import android.os.Bundle
+import android.media.MediaPlayer // Importación clave para el audio
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -14,13 +15,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 
 class PantallaInicioActivity : ComponentActivity() {
+
+    private var mediaPlayer: MediaPlayer? = null // Variable para el reproductor de música
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1. Inicializar y empezar la música
+        mediaPlayer = MediaPlayer.create(this, R.raw.fashion_queen)?.apply {
+            isLooping = true // Que la música se repita
+            start() // Empieza la reproducción
+        }
 
         setContent {
             BuTrivialTheme {
@@ -30,11 +41,14 @@ class PantallaInicioActivity : ComponentActivity() {
                 ) {
                     PantallaInicio(
                         onJugarClick = {
-                            // Ir a la pantalla del juego
+                            // Pausar la música antes de navegar a otra pantalla
+                            mediaPlayer?.pause()
                             val intent = Intent(this, PantallaSeleccionCategoriaActivity::class.java)
                             startActivity(intent)
                         },
                         onCreditosClick = {
+                            // Pausar la música antes de navegar a otra pantalla
+                            mediaPlayer?.pause()
                             val intent = Intent(this, PantallaCreditosActivity::class.java)
                             startActivity(intent)
                         }
@@ -42,6 +56,28 @@ class PantallaInicioActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // Manejar el ciclo de vida de la Activity para controlar la música
+
+    override fun onResume() {
+        super.onResume()
+        // Reanudar la música si está pausada (al volver de otra Activity)
+        if (mediaPlayer != null && !mediaPlayer!!.isPlaying) {
+            mediaPlayer?.start()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Pausar la música cuando la Activity ya no está en primer plano
+        mediaPlayer?.pause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release() // Liberar los recursos del MediaPlayer
+        mediaPlayer = null
     }
 }
 
@@ -99,4 +135,11 @@ fun PantallaInicio(
     }
 }
 
-
+// Opcional: Vista previa
+@Preview(showBackground = true)
+@Composable
+fun PantallaInicioPreview() {
+    BuTrivialTheme {
+        PantallaInicio({}, {})
+    }
+}

@@ -23,19 +23,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 import kotlinx.coroutines.delay
-//<<<<<<< HEAD
-// IMPORTACIONES DEL ARCHIVO EXTERNO
-//=======
-
-// Asegúrate de que esta constante esté definida en PantallaSeleccionCategoria.kt
-// o la copias aquí si ese archivo no está siendo importado correctamente:
-// const val EXTRA_TEMA_SELECCIONADO = "com.example.butrivial.TEMA_SELECCIONADO"
-
-//>>>>>>> 550c98a6bdf0f7de60da45c7cd26292c5a3cadce
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // ... (Tu código de onCreate)
         val temaNombre: String? = intent.getStringExtra(EXTRA_TEMA_SELECCIONADO)
 
         val temaSeleccionado: Tema = if (temaNombre != null) {
@@ -81,25 +73,35 @@ fun PantallaButrivial(temaInicial: Tema) {
     var preguntaIndex by remember { mutableIntStateOf(0) }
     var juegoActivo by remember { mutableStateOf(poolDePreguntas.isNotEmpty()) }
 
-    // --- REPRODUCCIÓN DE MÚSICA (añadido) ---
+    // --- REPRODUCCIÓN DE MÚSICA DE FONDO ---
 
-    // Crear MediaPlayer una sola vez mientras exista el Composable
-    val mediaPlayer = remember {
-        // Asegúrate de tener app/src/main/res/raw/fashion_queen.mp3 y usar R.raw.fashion_queen
-        MediaPlayer.create(context, R.raw.fashion_queen).apply {
+    val mediaPlayerFondo = remember {
+        MediaPlayer.create(context, R.raw.cancioningame).apply {
             isLooping = true // opcional: que se repita mientras juegoActivo == true
         }
+    }
+
+    // --- REPRODUCTORES DE EFECTOS DE SONIDO (NUEVOS) ---
+    val mediaPlayerCorrecto = remember {
+        MediaPlayer.create(context, R.raw.correcto)
+    }
+
+    val mediaPlayerFallo = remember {
+        MediaPlayer.create(context, R.raw.fallo)
     }
 
     // Liberar recursos cuando el Composable se destruya
     DisposableEffect(Unit) {
         onDispose {
             try {
-                if (mediaPlayer.isPlaying) mediaPlayer.stop()
+                if (mediaPlayerFondo.isPlaying) mediaPlayerFondo.stop()
             } catch (_: Exception) { }
             try {
-                mediaPlayer.release()
+                mediaPlayerFondo.release()
             } catch (_: Exception) { }
+            // LIBERAR LOS NUEVOS RECURSOS
+            try { mediaPlayerCorrecto.release() } catch (_: Exception) { }
+            try { mediaPlayerFallo.release() } catch (_: Exception) { }
         }
     }
 
@@ -108,13 +110,13 @@ fun PantallaButrivial(temaInicial: Tema) {
     LaunchedEffect(key1 = juegoActivo) {
         try {
             if (juegoActivo) {
-                mediaPlayer.seekTo(0)
-                mediaPlayer.start()
+                mediaPlayerFondo.seekTo(0)
+                mediaPlayerFondo.start()
             } else {
-                if (mediaPlayer.isPlaying) {
-                    mediaPlayer.pause()
+                if (mediaPlayerFondo.isPlaying) {
+                    mediaPlayerFondo.pause()
                 }
-                mediaPlayer.seekTo(0)
+                mediaPlayerFondo.seekTo(0)
             }
         } catch (_: Exception) { /* ignorar errores de reproducción */ }
     }
@@ -125,18 +127,18 @@ fun PantallaButrivial(temaInicial: Tema) {
     var respuestaSeleccionadaIndex by remember { mutableIntStateOf(-1) }
     var respuestaCorrectaIndex by remember { mutableIntStateOf(-1) }
 
-    // --- ESTADO PARA EL DIÁLOGO DE PAUSA (NUEVO) ---
+    // --- ESTADO PARA EL DIÁLOGO DE PAUSA ---
     var mostrarDialogoPausa by remember { mutableStateOf(false) }
 
 
-    // --- FUNCIÓN PARA NAVEGAR A INICIO (NUEVA) ---
+    // --- FUNCIÓN PARA NAVEGAR A INICIO ---
     val irAInicio: () -> Unit = {
         val intent = Intent(context, PantallaInicioActivity::class.java)
         context.startActivity(intent)
         if (context is ComponentActivity) context.finish()
     }
 
-    // --- FUNCIÓN PARA REINICIAR EL JUEGO COMPLETO (AHORA COMO VAL LAMBDA) ---
+    // --- FUNCIÓN PARA REINICIAR EL JUEGO COMPLETO ---
     val reiniciarJuego: () -> Unit = {
         puntuacion = 0
         preguntaIndex = 0
@@ -217,11 +219,13 @@ fun PantallaButrivial(temaInicial: Tema) {
                 respuestaCorrectaIndex = preguntaActual.respuestaCorrecta
                 mensajeEstado = "¡Tiempo agotado! La respuesta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
                 juegoActivo = false
+                // REPRODUCIR SONIDO DE FALLO POR TIEMPO AGOTADO
+                try { mediaPlayerFallo.start() } catch (_: Exception) { }
             }
         }
     }
 
-    // --- FUNCIÓN PARA PROCESAR RESPUESTA ---
+    // --- FUNCIÓN PARA PROCESAR RESPUESTA (MODIFICADA) ---
     fun procesarRespuesta(seleccionIndex: Int) {
         if (!juegoActivo) return
 
@@ -231,8 +235,12 @@ fun PantallaButrivial(temaInicial: Tema) {
         if (seleccionIndex == preguntaActual.respuestaCorrecta) {
             puntuacion += 10
             mensajeEstado = "¡Correcto! +10 puntos."
+            // REPRODUCIR SONIDO DE ACIERTO
+            try { mediaPlayerCorrecto.start() } catch (_: Exception) { }
         } else {
             mensajeEstado = "Incorrecto. La respuesta correcta era: ${preguntaActual.opciones[preguntaActual.respuestaCorrecta]}"
+            // REPRODUCIR SONIDO DE FALLO
+            try { mediaPlayerFallo.start() } catch (_: Exception) { }
         }
         juegoActivo = false
     }
@@ -242,7 +250,8 @@ fun PantallaButrivial(temaInicial: Tema) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF003049))
-            .padding(20.dp),
+            // Relleno ajustado
+            .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -419,7 +428,6 @@ fun PantallaButrivial(temaInicial: Tema) {
     }
 
 } // Fin de PantallaButrivial
-
 
 
 @Preview(showBackground = true)
