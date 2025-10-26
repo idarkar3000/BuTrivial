@@ -195,7 +195,7 @@ val PreguntasPorTema: Map<Tema, List<Pregunta>> = mapOf(
 
         // Enunciado: ¿Cuál de estos juegos tubo mayor impacto en la industria? (Opción 3: Super Mario Bros)
         Pregunta(
-            texto = "¿Cuál de estos juegos tubo mayor impacto en la industria?",
+            texto = "¿Cuál de estos juegos tuvo mayor impacto en la industria?",
             opciones = listOf("Doom", "Minecraft", "Super Mario Bros", "World of Warcraft"),
             respuestaCorrecta = 2
         ),

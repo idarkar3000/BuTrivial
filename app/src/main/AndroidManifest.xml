@@ -12,16 +12,34 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BuTrivial" >
         <activity
-            android:name=".MainActivity"
+            android:name=".PantallaInicioActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.BuTrivial" >
+            android:theme="@style/Theme.BuTrivial">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PantallaSeleccionCategoriaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
+
+        <activity
+            android:name=".PantallaCreditosActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
+
+        <activity
+            android:name=".PantallaPuntuacionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BuTrivial" />
+
     </application>
 
 </manifest>
