@@ -1,22 +1,13 @@
 // Preguntas.kt
 package com.example.butrivial
 
-/**
- * Clase de datos para representar una pregunta del trivial.
- * @property texto El enunciado de la pregunta.
- * @property opciones La lista de 4 opciones de respuesta.
- * @property respuestaCorrecta El índice (0 a 3) de la opción correcta.
- */
 data class Pregunta(
     val texto: String,
     val opciones: List<String>,
     val respuestaCorrecta: Int, // Índice 0, 1, 2, o 3
 )
 
-/**
- * Definición de los temas/categorías del juego.
- * Cada tema tiene un nombre que se mostrará en la interfaz.
- */
+// --- Uso de enum para las distintas categorias del juego ---
 enum class Tema(val nombreMostrar: String) {
     CIENCIAS_NATURALES("Ciencias"),
     HISTORIA("Historia"),
@@ -26,9 +17,6 @@ enum class Tema(val nombreMostrar: String) {
     MIXTO ("Un poco de todo") // <--- CATEGORÍA AÑADIDA
 }
 
-/**
- * Mapa que asocia cada tema con su lista de 10 preguntas.
- */
 val PreguntasPorTema: Map<Tema, List<Pregunta>> = mapOf(
     // ----------------------------------------------------
     // POOL DE 10 PREGUNTAS: CIENCIAS NATURALES
@@ -406,20 +394,14 @@ val PreguntasPorTema: Map<Tema, List<Pregunta>> = mapOf(
     )
 )
 
-/**
- * Función que obtiene el pool de preguntas.
- * Si el tema es MIXTO, devuelve todas las preguntas mezcladas y ordenadas aleatoriamente.
- * Si es cualquier otro tema, devuelve la lista de preguntas de ese tema.
- *
- * NOTA: Esta función es crucial para que PantallaBuTrivial pueda obtener el set final de preguntas.
- */
+// --- Función para obtener un pool de preguntas aleatorio (MIXTO---
 fun obtenerPoolDePreguntas(tema: Tema): List<Pregunta> {
     return if (tema == Tema.MIXTO) {
-        // Obtenemos todas las listas de preguntas, las juntamos (flatten) y las mezclamos
+        // Junta las listas de preguntas y las mezcla
         PreguntasPorTema.values.flatten()
             .shuffled()
     } else {
-        // Obtenemos solo las preguntas del tema seleccionado
+        // Obtener solo las preguntas del tema seleccionado
         PreguntasPorTema[tema] ?: emptyList()
     }
 }

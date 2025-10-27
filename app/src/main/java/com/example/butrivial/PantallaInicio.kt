@@ -2,7 +2,7 @@ package com.example.butrivial
 
 import android.content.Intent
 import android.os.Bundle
-import android.media.MediaPlayer // Importación clave para el audio
+import android.media.MediaPlayer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -22,7 +22,7 @@ import com.example.butrivial.ui.theme.BuTrivialTheme
 
 class PantallaInicioActivity : ComponentActivity() {
 
-    private var mediaPlayer: MediaPlayer? = null // Variable para el reproductor de música
+    private var mediaPlayer: MediaPlayer? = null // Reproductor de musica
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,13 +41,13 @@ class PantallaInicioActivity : ComponentActivity() {
                 ) {
                     PantallaInicio(
                         onJugarClick = {
-                            // Pausar la música antes de navegar a otra pantalla
+                            // Pausar la música antes de navegar a juego
                             mediaPlayer?.pause()
                             val intent = Intent(this, PantallaSeleccionCategoriaActivity::class.java)
                             startActivity(intent)
                         },
                         onCreditosClick = {
-                            // Pausar la música antes de navegar a otra pantalla
+                            // Pausar la música antes de ir a creditos
                             mediaPlayer?.pause()
                             val intent = Intent(this, PantallaCreditosActivity::class.java)
                             startActivity(intent)

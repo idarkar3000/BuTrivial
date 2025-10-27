@@ -27,9 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 
-// Constante clave para pasar el nombre del Tema a la actividad de juego
+
 const val EXTRA_TEMA_SELECCIONADO = "com.example.butrivial.TEMA_SELECCIONADO"
-// Constante clave para pasar el número de preguntas
 const val EXTRA_NUMERO_PREGUNTAS = "com.example.butrivial.NUMERO_PREGUNTAS"
 
 class PantallaSeleccionCategoriaActivity : ComponentActivity() {
@@ -47,11 +46,10 @@ class PantallaSeleccionCategoriaActivity : ComponentActivity() {
                             val intent = Intent(this, MainActivity::class.java).apply {
                                 // Añadimos el nombre del tema (convertido a String) como extra
                                 putExtra(EXTRA_TEMA_SELECCIONADO, tema.name)
-                                // AÑADIMOS EL NÚMERO DE PREGUNTAS COMO EXTRA
                                 putExtra(EXTRA_NUMERO_PREGUNTAS, numPreguntas)
                             }
                             startActivity(intent)
-                            finish() // Cerramos esta actividad
+                            finish()
                         }
                     )
                 }
@@ -67,9 +65,9 @@ fun PantallaSeleccionCategoria(
     val context = LocalContext.current
 
     // --- ESTADO PARA EL SLIDER ---
-    // Inicializado en 10f. Este estado controla la posición del slider.
+    // Estado inicial del slider
     var sliderPosition by remember { mutableFloatStateOf(10f) }
-    // Convertimos el float del slider a un entero para el número de preguntas a usar
+    // Converrtir el float del slider a un entero para el número de preguntas a usar
     val numPreguntasSeleccionadas = sliderPosition.toInt()
 
     Column(
@@ -107,7 +105,7 @@ fun PantallaSeleccionCategoria(
                 onValueChange = { sliderPosition = it },
                 // Rango: de 5.0f a 10.0f
                 valueRange = 5f..10f,
-                // 5 pasos: esto permite que el slider se detenga en 5, 6, 7, 8, 9 y 10.
+                // 5 pasos del slider de 5 a 10
                 steps = 4,
                 colors = SliderDefaults.colors(
                     thumbColor = Color(0xFFFFB700),
@@ -129,7 +127,6 @@ fun PantallaSeleccionCategoria(
             // Recorre todos los valores del enum Tema (incluido MIXTO)
             items(Tema.entries.toTypedArray()) { tema ->
                 CategoriaCard(tema = tema, onClick = {
-                    // Al hacer click, pasamos el tema y el valor actual del slider
                     onTemaSelected(it, numPreguntasSeleccionadas)
                 })
             }
@@ -138,9 +135,8 @@ fun PantallaSeleccionCategoria(
         // --- Botón de Tema Aleatorio ---
         Button(
             onClick = {
-                // Selecciona un tema al azar del Enum Tema (excluyendo MIXTO, ya que es la categoría "Un poco de todo")
+                // Selecciona un tema al azar del Enum Tema
                 val temaAleatorio = Tema.entries.toTypedArray().filter { it != Tema.MIXTO }.random()
-                // Llama al callback con el tema aleatorio y el número de preguntas
                 onTemaSelected(temaAleatorio, numPreguntasSeleccionadas)
             },
             modifier = Modifier

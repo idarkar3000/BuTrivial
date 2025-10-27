@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.example.butrivial.ui.theme.BuTrivialTheme
 import kotlinx.coroutines.delay
 
-// Duración del temporizador por pregunta en segundos
+// Tiempo en segundos por pregunta
 const val TIEMPO_MAXIMO_POR_PREGUNTA = 30
 
 class MainActivity : ComponentActivity() {
@@ -91,7 +91,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
         Pregunta("Error de pregunta", listOf("", "", "", ""), 0)
     }
 
-    // Media Players para efectos de sonido
+    // Efectos de sonido
     val mpAcierto: MediaPlayer? = remember { MediaPlayer.create(context, R.raw.correcto) }
     val mpError: MediaPlayer? = remember { MediaPlayer.create(context, R.raw.fallo) }
 
@@ -102,13 +102,12 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
         }
     }
 
-    // --- CONTROL DEL CICLO DE VIDA Y REPRODUCCIÓN DE MÚSICA DE FONDO ---
+    // --- Control del ciclo de juego y audio ---
     DisposableEffect(Unit) {
         // La música comienza con la primera pregunta
         mpJuego?.start()
 
         onDispose {
-            // Liberar todos los recursos de MediaPlayer al salir de la pantalla
             mpJuego?.stop()
             mpJuego?.release()
             mpAcierto?.release()
@@ -117,9 +116,8 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
     }
 
     // --- LÓGICA DE REINICIO DE MÚSICA POR PREGUNTA ---
-    // Este efecto se dispara cada vez que cambia preguntaActual
     LaunchedEffect(preguntaActual) {
-        // Detiene la música (si está sonando) y la reinicia desde el principio
+        // Detiene la música y reinicia
         mpJuego?.seekTo(0)
         mpJuego?.start()
     }
@@ -142,7 +140,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
         }
     }
 
-    // --- FUNCIÓN DE RESPUESTA (Puntuación por tiempo restante) ---
+    // --- Puntuación por tiempo restante ---
     fun comprobarRespuesta(indiceOpcion: Int?) {
         if (respuestaBloqueada) return
 
@@ -193,7 +191,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
     }
 
 
-    // --- INTERFAZ DE USUARIO (COMPOSABLE) ---
+    // --- INTERFAZ DE USUARIO ---
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -208,7 +206,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // NUEVO: Mostrar Puntuación Acumulada
+            // Mostrar Puntuación
 
                 Text(
                     text = "$puntuacion puntos",
@@ -381,7 +379,7 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
             }
         }
 
-        // --- BOTÓN SIGUIENTE PREGUNTA (Texto centrado garantizado) ---
+        // --- BOTÓN SIGUIENTE PREGUNTA ---
         if (respuestaBloqueada) {
             Button(
                 onClick = siguientePregunta,
@@ -394,13 +392,12 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
                     "Siguiente Pregunta",
                     color = Color.White,
                     fontSize = 18.sp,
-                    // Asegura que el Text ocupe todo el ancho y se centre dentro del Button
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
             }
         }
-    } // Fin del Contenedor Principal (Column)
+    }
 
     // --- DIÁLOGO DE PAUSA ---
     if (mostrarDialogoPausa) {
@@ -435,4 +432,4 @@ fun PantallaButrivial(temaInicial: Tema, maxPreguntas: Int) {
         )
     }
 
-} // Fin de PantallaButrivial
+}

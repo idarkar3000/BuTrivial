@@ -46,7 +46,7 @@ fun PantallaCreditos() {
     // Colores personalizados del tema
     val primaryColor = Color(0xFF003049) // Azul Oscuro de Fondo/Elementos
     val secondaryColor = Color(0xFFFFB700) // Amarillo/Naranja (Botón)
-    val cardColor = Color(0xFFFDF0D5) // Color de fondo de tarjeta (creadores)
+    val cardColor = Color(0xFFFDF0D5) // Color de fondo de tarjeta
     val cardNameColor = Color(0xFF669BBC) // Color para el fondo de los nombres
 
     // Lista de integrantes
@@ -62,7 +62,7 @@ fun PantallaCreditos() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(primaryColor) // Fondo oscuro para contraste
+            .background(primaryColor) // Fondo oscuro
             .padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -80,7 +80,7 @@ fun PantallaCreditos() {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // Ocupa el espacio central disponible
+                .weight(1f)
                 .padding(vertical = 16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = cardColor),
@@ -100,7 +100,6 @@ fun PantallaCreditos() {
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Lista de nombres con estilo mejorado
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -109,7 +108,7 @@ fun PantallaCreditos() {
                     items(integrantes) { nombre ->
                         Card(
                             modifier = Modifier
-                                .fillMaxWidth(0.9f), // Un poco más estrecho que el padre
+                                .fillMaxWidth(0.9f),
                             shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(containerColor = cardNameColor),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -134,7 +133,7 @@ fun PantallaCreditos() {
         // --- BOTÓN VOLVER AL INICIO ---
         Button(
             onClick = {
-                // Navegación para volver a la pantalla de inicio
+                // Ir a la pantalla de inicio
                 val intent = Intent(context, PantallaInicioActivity::class.java)
                 context.startActivity(intent)
                 if (context is ComponentActivity) context.finish()

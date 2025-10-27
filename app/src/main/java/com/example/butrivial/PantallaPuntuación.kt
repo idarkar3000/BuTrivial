@@ -24,7 +24,7 @@ class PantallaPuntuacionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // La puntuación es ahora el total de segundos acumulados
+        // La puntuación es el total de segundos acumulados
         val puntuacion = intent.getIntExtra("puntuacion", 0)
         // OBTENER EL NÚMERO TOTAL DE PREGUNTAS DEL INTENT
         val totalPreguntas = intent.getIntExtra("totalPreguntas", 10)
@@ -57,7 +57,7 @@ class PantallaPuntuacionActivity : ComponentActivity() {
     }
 }
 
-// Data class para manejar los cuatro componentes del resultado (soluciona el error de Triple)
+// Data class para manejar los cuatro componentes del resultado
 private data class ResultadoData(
     val titulo: String,
     val mensaje: String,
