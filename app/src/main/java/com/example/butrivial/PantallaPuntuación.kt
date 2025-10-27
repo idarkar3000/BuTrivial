@@ -81,20 +81,20 @@ fun PantallaPuntuacion(
     // Establecemos tres rangos de rendimiento
     val (titulo, mensaje, colorFondo, imagenRes) = when {
         porcentajePuntos >= 75 -> ResultadoData(
-            "¡Eres un Genio!",
-            "Resultado Épico. ¡Tu cerebro es más rápido que la luz!",
+            "¡Nah de locos!",
+            "Epic Ending. ¡Lo has hecho muy bien!",
             Color(0xFF00A676),
             R.drawable.logo_feliz
         )
         porcentajePuntos >= 40 -> ResultadoData(
             "¡Buen Trabajo!",
-            "Has acumulado una buena cantidad de tiempo. ¡A seguir practicando!",
+            "Good Ending. Pero mejorable",
             Color(0xFFFFB700),
             R.drawable.logo_disgustado
         )
         else -> ResultadoData(
-            "¡A por la próxima!",
-            "El tiempo fue tu mayor enemigo. ¡Mejora tu velocidad de respuesta!",
+            "Pa junio",
+            "Bad Ending. Has descubierto que no se puede estudiar el último día",
             Color(0xFFC1121F),
             R.drawable.logo_enfadado
         )
